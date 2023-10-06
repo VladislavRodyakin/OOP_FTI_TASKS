@@ -438,6 +438,7 @@ public:
     void write_unlock(); // освобождение объекта
 }
 
+```
 • rwlock() конструктор
 
 • rwlock(const rwlock&) = delete; - удалённый конструктор копирования
@@ -473,7 +474,7 @@ public:
     bool lock(int64_t timeout = -1);
     void unlock();
 }
-
+```
 • reader_lock() = delete;
 
 • reader_lock(const rwlock&) = delete;
