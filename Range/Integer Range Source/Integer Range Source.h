@@ -5,16 +5,26 @@
 #include <string>
 #include <type_traits>
 #include <exception>
-template<typename T>
-class Range_iterator {
+
+template<typename T, typename _T = std::enable_if_t<std::is_integral<T>::value || std::is_floating_point<T>::value>>
+class Range_iterator final{
 	const T& start, stop, step;
 	size_t index;
 public:
+	using iterator_category = std::forward_iterator_tag;
+	using difference_type = std::ptrdiff_t;
+	using value_type = T;
+	using pointer = T*;
+	using reference = T&;
+
 	Range_iterator(const T& _start, const T& _stop, const T& _step, size_t _index) :
 		start(_start), stop(_stop), step(_step), index(_index) {};
 	Range_iterator& operator++() {
 		index++;
 		return *this;
+	}
+	bool operator==(Range_iterator& other) {
+		return index == other.index;
 	}
 	bool operator!=(Range_iterator& other) {
 		return index != other.index;
@@ -25,13 +35,12 @@ public:
 };
 
 template<typename T, typename _T = std::enable_if_t<std::is_integral<T>::value || std::is_floating_point<T>::value>>
-class Range {
+class Range final{
 	T first;
 	T last;
 	T step;
 
 public:
-	//Range(const T& _first, const T& _last) : Range(_first, _last) {};
 	Range(const T& _last) : Range(0, _last) {};
 	Range(const T& _first, const T& _last, const T& _step = 1) : first(_first), last(_last), step(_step) {
 		if ((first < last && step < 0) || (first > last && step > 0) || step == 0) {
@@ -46,5 +55,4 @@ public:
 	Range_iterator<T> end() const {
 		return Range_iterator<T>(first, last, step, std::ceil((last - first) / step));
 	}
-	//operator++() {}
 };
