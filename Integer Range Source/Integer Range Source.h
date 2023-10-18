@@ -1,7 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include <numeric>
+#include <cmath>
 #include <string>
 #include <type_traits>
 #include <exception>
@@ -31,7 +31,7 @@ class Range {
 	T step;
 
 public:
-	Range(const T& _first, const T& _last) : Range(_first, _last) {};
+	//Range(const T& _first, const T& _last) : Range(_first, _last) {};
 	Range(const T& _last) : Range(0, _last) {};
 	Range(const T& _first, const T& _last, const T& _step = 1) : first(_first), last(_last), step(_step) {
 		if ((first < last && step < 0) || (first > last && step > 0) || step == 0) {
@@ -44,7 +44,7 @@ public:
 		return Range_iterator<T>(first, last, step, 0);
 	}
 	Range_iterator<T> end() const {
-		return Range_iterator<T>(first, last, step, ((last - first) / step) + 1);
+		return Range_iterator<T>(first, last, step, std::ceil((last - first) / step));
 	}
 	//operator++() {}
 };
