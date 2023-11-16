@@ -1,57 +1,30 @@
 #pragma once
-#include "Node.hpp"
-//typedef 
-// итого - делаем несбалансированное бинарное дерево поиска
 
-template<typename T> class Tree final {
-    Node<T> root; // * или &, дальше решим // вообще removeChild копирует всех потомков удаляемого к родителю, что очень затратно
-    bool (*)(T a, T b) compare;
+template<typename T> class Node final {
+    Node right;
+    Node left;
+    T data;
 public:
     // Конструкторы и деструктор
-    Tree() {}; // = delete?
-    Tree(const Tree<T>& root): data(root.data) {
-        children = root.children; // наверное должно быть сложнее
-    }
-    Tree(const T& value): data(value) {};
+    Node() {}; // = delete?
+    Node(const T& value) : data(value) {};
 
-    ~Tree() { // проитерируемся через всех, для этого нужны итераторы (итератор ломается, если я правильно помню)
-            // на сейчас реализовать через removeChild по всем детям, потом убить свою data
-            // чую что можно влететь в цикл реализаций, нужно разобраться подробнее
-            // беда с removeChild в том что будет просто неадекватное количество копирований потомков
-        for (auto child : children) {
-            removeChild(child.data);
-        }
+    ~Node(){
         delete(data);
     }
     // Добавление и удаление элемента
-    void addChild(const T& value) {
-        children.emplace_back(value);
+    void addChild(const T& value, bool is_greater) { // если хранить функцию сравнения в ноде, то is_greater не потребуется
+        if (is_greater) right = Node(value);
+        left = Node(value);
     }
-    void removeChild(const T& value) { // находим child с value find-ом, подсоединяем всех его children к родителю (нам), и pop элемент
-                                            // нужно разобраться как быть с data
-        auto deletable = std::find(children.begin(), children.end(), value);
-    #ifdef __cpp_lib_containers_ranges
-        children.append_range(deletable.children); //это фишка C++23, поэтому такая конструкция (взято из примера на cppreference.com)
-        // учитывая насколько всё серое, оно видимо всё-же не работает
-    #else
-        children.insert(children.end(), deletable.children.begin(), deletable.children.end()); // проверить deletable->
-    #endif
-        delete(deletable.data);
-        children.erase(deletable);
-    }
-    // Добавление и удаление поддерева
-    void addSubtree(Tree<T>& subtree) {
-        children.push_back(subtree); //push_back не выделен цветом, м/б какая-то проблема (всё собирается нормально, так что непонятно)
-    }
-    void removeSubtree(Tree<T>& subtree) { // пока так, вроде должно работать. нужно посмотреть на инкапсуляцию, скорее всего переделать с использованием get_data или чего-то похожего
-        removeChild(subtree.data);
+    void removeChild(const T& value) { // тут очень хотелось бы иметь функцию 
     }
 
     // Насколько плох вложенный класс итератора? Если только вдруг нам не потребуется дерево без итератора
     // Итератор перемещения по дереву
     class Tree_Iterator final { // видимо нужно будет 2 итератора. Скорее всего наследованные от этого
         size_t index; //сомнительная идея - в begin собирать все ноды в нужном порядке и итератором ходить по вектору.
-                        // за это меня скорее всего повесят, поэтому нужно сделать по-другому
+        // за это меня скорее всего повесят, поэтому нужно сделать по-другому
     public:
         using iterator_categoty = std::forward_iterator_tag; // нужно уточнить
         using difference_type = std::ptrdiff_t;
@@ -76,7 +49,7 @@ public:
         // Оператор присваивания
         //Tree_Iterator& operator=(const Tree_Iterator& other);
         // оно надо вообще? в range не было
-        
+
         // Операторы сравнения
         bool operator==(const Tree_Iterator& other) const {
             return index == other.index;
