@@ -1,29 +1,32 @@
 #pragma once
 #include "Node.hpp"
-//typedef 
+
 // итого - делаем несбалансированное бинарное дерево поиска
 
 template<typename T> class Tree final {
+    typedef bool (*cmp_ptr)(T a, T b);
     Node<T> root; // * или &, дальше решим // вообще removeChild копирует всех потомков удаляемого к родителю, что очень затратно
-    bool (*)(T a, T b) compare;
+    cmp_ptr compare;
 public:
     // Конструкторы и деструктор
     Tree() {}; // = delete?
-    Tree(const Tree<T>& root): data(root.data) {
-        children = root.children; // наверное должно быть сложнее
-    }
-    Tree(const T& value): data(value) {};
+    Tree(const Tree<T>& other) : root(other.root), compare(other.compare) {};
+    Tree(const T& value, cmp_ptr compare): data(value) {};
 
     ~Tree() { // проитерируемся через всех, для этого нужны итераторы (итератор ломается, если я правильно помню)
             // на сейчас реализовать через removeChild по всем детям, потом убить свою data
             // чую что можно влететь в цикл реализаций, нужно разобраться подробнее
             // беда с removeChild в том что будет просто неадекватное количество копирований потомков
-        for (auto child : children) {
+        // старое
+        /*for (auto child : children) {
             removeChild(child.data);
         }
         delete(data);
+        */
     }
     // Добавление и удаление элемента
+    //это тоже пока старое
+    /*
     void addChild(const T& value) {
         children.emplace_back(value);
     }
@@ -39,12 +42,13 @@ public:
         delete(deletable.data);
         children.erase(deletable);
     }
+    */
     // Добавление и удаление поддерева
     void addSubtree(Tree<T>& subtree) {
-        children.push_back(subtree); //push_back не выделен цветом, м/б какая-то проблема (всё собирается нормально, так что непонятно)
+        //children.push_back(subtree); //push_back не выделен цветом, м/б какая-то проблема (всё собирается нормально, так что непонятно)
     }
     void removeSubtree(Tree<T>& subtree) { // пока так, вроде должно работать. нужно посмотреть на инкапсуляцию, скорее всего переделать с использованием get_data или чего-то похожего
-        removeChild(subtree.data);
+        //removeChild(subtree.data);
     }
 
     // Насколько плох вложенный класс итератора? Если только вдруг нам не потребуется дерево без итератора
