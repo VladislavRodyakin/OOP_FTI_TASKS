@@ -1,131 +1,127 @@
 #pragma once
-#include "Node.hpp"
+#include <iterator> // iterator tags
+// #include "Node.hpp"
 
-// итого - делаем несбалансированное бинарное дерево поиска
+// making unbalanced binary tree
 
-template<typename T> class Tree final {
-    typedef bool (*cmp_ptr)(T a, T b);
-    Node<T> root; // * или &, дальше решим // вообще removeChild копирует всех потомков удаляемого к родителю, что очень затратно
-    cmp_ptr compare;
+// make depth first iterator as default, allow to use other through template argument
+// interface lookalike to map, in so implement [], returns (value) under (key) (it is a wrap around find(key), which returns iterator)
+
+// expand template to key, value, cmp (as functor), iterator
+template<typename Key, typename Value, typename Cmp> class Tree final { 
+
+    class Node final{
+        // weak pointer parent, unique children
+        Node* right = nullptr;
+        Node* left = nullptr;
+        Node* parent = nullptr;
+        Key key;
+        Value data;
+    public:
+        void setData(Value& _data) { data = _data; }
+        Value getData() { return data; }
+        void setKey(Key& _key) { key = _key; }
+        Key getKey() { return key; }
+        void setLeft(Node* node) { left = node; }// copy/move?
+        Node* getLeft() { return left; }
+        void setRight(Node* node) { right = node; }
+        Node* getRight() { return right; }
+        void setParent(Node* node) { parent = node; }
+        Node* getParent() { return parent; }
+    };
+    
+    Cmp cmp; // get from template     typedef bool (*cmp_ptr)(Value a, Value b);
+    Node* root = nullptr; // shared
+    size_t size;
+
 public:
-    // Конструкторы и деструктор
     Tree() {}; // = delete?
-    Tree(const Tree<T>& other) : root(other.root), compare(other.compare) {};
-    Tree(const T& value, cmp_ptr compare): data(value) {};
+    Tree(const Tree<Key, Value, Cmp>& other) : root(other.root), cmp(other.cmp) {}; // copy pointer w/ root and internal ptrs
+    // Tree(const Value& value, cmp_ptr compare): data(value) {};
+    ~Tree() { 
+        delete(root);
+        // delete(compare);
+    }
 
-    ~Tree() { // проитерируемся через всех, для этого нужны итераторы (итератор ломается, если я правильно помню)
-            // на сейчас реализовать через removeChild по всем детям, потом убить свою data
-            // чую что можно влететь в цикл реализаций, нужно разобраться подробнее
-            // беда с removeChild в том что будет просто неадекватное количество копирований потомков
-        // старое
-        /*for (auto child : children) {
-            removeChild(child.data);
-        }
-        delete(data);
-        */
-    }
-    // Добавление и удаление элемента
-    //это тоже пока старое
+    // redo
     /*
-    void addChild(const T& value) {
-        children.emplace_back(value);
+    void addElem(Value& value) {
+        if (root)
+            root = *Node(value);
+        else
+            root->addChild(value);
     }
-    void removeChild(const T& value) { // находим child с value find-ом, подсоединяем всех его children к родителю (нам), и pop элемент
-                                            // нужно разобраться как быть с data
-        auto deletable = std::find(children.begin(), children.end(), value);
-    #ifdef __cpp_lib_containers_ranges
-        children.append_range(deletable.children); //это фишка C++23, поэтому такая конструкция (взято из примера на cppreference.com)
-        // учитывая насколько всё серое, оно видимо всё-же не работает
-    #else
-        children.insert(children.end(), deletable.children.begin(), deletable.children.end()); // проверить deletable->
-    #endif
-        delete(deletable.data);
-        children.erase(deletable);
+
+    void removeElem(Value& value) {
+        if (root && root->getData() == value) {
+            Node::deleteNode(root);
+        }
     }
     */
-    // Добавление и удаление поддерева
-    void addSubtree(Tree<T>& subtree) {
-        //children.push_back(subtree); //push_back не выделен цветом, м/б какая-то проблема (всё собирается нормально, так что непонятно)
+
+    void addSubtree(Tree<Key, Value, Cmp>& subtree) {
+
     }
-    void removeSubtree(Tree<T>& subtree) { // пока так, вроде должно работать. нужно посмотреть на инкапсуляцию, скорее всего переделать с использованием get_data или чего-то похожего
-        //removeChild(subtree.data);
+    void removeSubtree(Tree<Key, Value, Cmp>& subtree) {
+
     }
 
-    // Насколько плох вложенный класс итератора? Если только вдруг нам не потребуется дерево без итератора
-    // Итератор перемещения по дереву
-    class Tree_Iterator final { // видимо нужно будет 2 итератора. Скорее всего наследованные от этого
-        size_t index; //сомнительная идея - в begin собирать все ноды в нужном порядке и итератором ходить по вектору.
-                        // за это меня скорее всего повесят, поэтому нужно сделать по-другому
+    class Tree_Iterator { 
+        // weak pointer to node, not index
+        Node* node;
     public:
-        using iterator_categoty = std::forward_iterator_tag; // нужно уточнить
+        using iterator_categoty = std::forward_iterator_tag; // check whether could be uptired
         using difference_type = std::ptrdiff_t;
+        using value_type = Value;
+        using pointer = Value*;
+        using reference = Value&;
 
-        // хороший вопрос - что мы возвращаем, хранимое или ноду
-        // LegacyIterator и RangeIterator возвращает хранимое
-        // нужно согласовываться вверху с удалением, т.к. оно может использовать итераторы
-        // так-то не должны использовать
-        // 500% не должны, у нас же итератор после первого удаления сломается (инвалидируется)
-        using value_type = T;
-        using pointer = T*;
-        using reference = T&;
-
-
-        // Конструкторы и деструктор
         //Tree_Iterator();
         //Tree_Iterator(const Tree_Iterator& other);
         //~Tree_Iterator();
-        // нужно будет посмотреть подробнее
-        Tree_Iterator(Tree<T>* root) {}; // указатель для согласованности с end(), т.к. нельзя разыменовывать nullptr
+        Tree_Iterator(Tree<Key, Value, Cmp>* root) {};
 
-        // Оператор присваивания
         //Tree_Iterator& operator=(const Tree_Iterator& other);
-        // оно надо вообще? в range не было
+        // is it needed at all? wasnt in range task
         
-        // Операторы сравнения
         bool operator==(const Tree_Iterator& other) const {
-            return index == other.index;
+            return node->getKey == other.node->getKey;
         }
         bool operator!=(const Tree_Iterator& other) const {
-            return index != other.index;
+            return node->getKey != other.node->getKey;
         }
 
-        // Операторы разыменования
-        // нужно понимание реализации
-        T& operator*() const;
-        T* operator->() const;
+        Value& operator*() const {
+            return *node;
+        }
+        Value* operator->() const {
+            return node;
+        }
 
-        // Операторы инкремента и декремента
-        Tree_Iterator& operator++() {
-            index++;
+        // redo as written
+        Tree_Iterator& operator++() {// btree_next
+            //index++;
             return *this;
         }
-        Tree_Iterator operator++(int increase) {
-            index += increase; // не мог принять по ссылке, почему?
+        Tree_Iterator operator+(int& increase) { // for increase btree_next
+            //index += increase;
             return *this;
         }
-        Tree_Iterator& operator--() {
-            index--;
+        Tree_Iterator& operator--() { // btree_prev
+            //index--;
             return *this;
         }
-        Tree_Iterator operator--(int decrease) {
-            index -= decrease; // не мог принять по ссылке, почему?
+        Tree_Iterator operator-(int& decrease) { // for decrease btree_prev
+            //index -= decrease; 
             return *this;
         }
     };
 
-    // Итератор обхода в глубину
-    Tree_Iterator beginDepth() const {
+    // redo as written
+    Tree_Iterator begin() const { // btree_first
         return Tree_Iterator(this);
     }
-    Tree_Iterator endDepth() const {
-        return Tree_Iterator(nullptr);
-    }
-
-    // Итератор обхода в ширину
-    Tree_Iterator beginBreadth() const {
+    Tree_Iterator end() const { // btree_last->right
         return Tree_Iterator(this);
-    }
-    Tree_Iterator endBreadth() const {
-        return Tree_Iterator(nullptr);
     }
 };

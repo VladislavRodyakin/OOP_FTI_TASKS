@@ -1,30 +1,65 @@
 #pragma once
 
-template<typename T> class Node final { // перейдём на указатели
+//not implementing, all logic in Tree
+
+// into tree
+// must implement setter/getter, contain key, value, parent and children
+
+template<typename T> class Node final {
     bool (*compare)(T a, T b); //1: a<b -1: a>b 
-    Node* right = nullptr;
-    Node* left = nullptr;
-    Node* parent = nullptr;
+    // weak pointer parent, unique children
+    Node<T>* right = nullptr;
+    Node<T>* left = nullptr;
+    Node<T>* parent = nullptr;
     T data;
 public:
-    // Конструкторы и деструктор
-    Node() {} = delete;
-    Node(const T& value, bool (*_compare)(T a, T b);) : data(value), compare(_compare) {};
+    Node() = delete;
+    Node(const T& value, bool (*_compare)(T a, T b)) : data(value), compare(_compare) {};
     ~Node(){
         delete(compare);
         delete(left);
         delete(right);
     }
-    // Добавление и удаление потомка
-    void addChild(const T& value) { 
-        if (compare(data, value)) left = Node(value);
-        else right = Node(value);
-    }
-    void removeChild(const T& value) { // тут много
 
+    T getData() {
+        return data;
     }
-    Node* remove_self() {
-        Node* node = nullptr;
+    
+    void addChild(const T& value) {
+        bool direct = compare(data, value);
+        if (direct && left == nullptr) left = Node<T>(value);
+        else if (!direct && right == nullptr) right = Node<T>(value);
+        else if (direct && left != nullptr) left->addChild(value);
+        else if (!direct && right != nullptr) right->addChild(value);
+    }
+
+    void removeChild(const T& value) { 
+        bool direct = compare(data, value);
+        if (direct && left == nullptr); // return error
+        else if (!direct && right == nullptr); // return error
+        else if (direct && left->data == value) {
+            Node<T>* tmp = left;
+            left = reassignOwnStructure();
+            delete(tmp);
+        }
+        else if (direct && right != nullptr) {
+            Node<T>* tmp = right;
+            right = reassignOwnStructure();
+            delete(tmp);
+        }
+        else if (direct && left != nullptr) left->addChild(value);
+        else if (!direct && right != nullptr) right->addChild(value);
+    }
+
+    void deleteNode(Node<T>* node) {
+        Node<T>* tmp = node;
+        node = reassignOwnStructure();
+        delete(tmp);
+    }
+
+    // reassignOwnStructure move to private
+    Node<T>* reassignOwnStructure() { 
+        Node<T>* node = nullptr;
         if (this->left == this->right) //left == right == nullptr
             node = nullptr;
         else if (this->left == nullptr)
@@ -32,7 +67,7 @@ public:
         else if (this->right == nullptr)
             node = this->left;
         else {
-            Node* node2 = this->right;
+            Node<T>* node2 = this->right;
             node = this->right;
             while (node2->left) node2 = node2->left;
             node2->left = this->left;
@@ -40,7 +75,14 @@ public:
         }
         if (node != nullptr)
             node->parent = this->parent;
-        delete(this); // огрызок предыдущей реализации, скорее всего убрать
-        return node;
+        return node; // assignable value
+    }
+
+    void clear_undertree() {
+        if (left) left->clear_undertree();
+        if (right) right->clear_undertree();
+        delete(data);
+        delete(left);
+        delete(right);
     }
 };
