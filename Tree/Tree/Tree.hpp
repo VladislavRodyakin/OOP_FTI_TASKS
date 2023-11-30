@@ -1,6 +1,5 @@
 #pragma once
 #include <iterator> // iterator tags
-// #include "Node.hpp"
 
 // making unbalanced binary tree
 
@@ -8,7 +7,7 @@
 // interface lookalike to map, in so implement [], returns (value) under (key) (it is a wrap around find(key), which returns iterator)
 
 // expand template to key, value, cmp (as functor), iterator
-template<typename Key, typename Value, typename Cmp> class Tree final { 
+template<typename Key, typename Value, typename Cmp> class Tree { 
 
     class Node final{
         // weak pointer parent, unique children
@@ -67,10 +66,29 @@ public:
     }
 
     class Tree_Iterator { 
-        // weak pointer to node, not index
-        Node* node;
+        Node* node; // weak pointer
+        Node* find_left(Node* root) {
+            if (root == nullptr)
+                return nullptr;
+            Node* root2 = root;
+            while (root2->getLeft())
+                root2 = root2->getLeft();
+            return root2;
+        }
+        Node* find_right(Node* root) {
+            if (root == nullptr)
+                return nullptr;
+            Node* root2 = root;
+            while (root2->getRight())
+                root2 = root2->getRight();
+            return root2;
+        }
+        //last
+        Node* stop() {
+            return nullptr;
+        }
     public:
-        using iterator_categoty = std::forward_iterator_tag; // check whether could be uptired
+        using iterator_categoty = std::forward_iterator_tag; // check whether could be uptired, could be random access
         using difference_type = std::ptrdiff_t;
         using value_type = Value;
         using pointer = Value*;
@@ -79,16 +97,18 @@ public:
         //Tree_Iterator();
         //Tree_Iterator(const Tree_Iterator& other);
         //~Tree_Iterator();
-        Tree_Iterator(Tree<Key, Value, Cmp>* root) {};
+        Tree_Iterator(Tree<Key, Value, Cmp>* tree) {
+            node = find_left(tree->root);
+        };
 
         //Tree_Iterator& operator=(const Tree_Iterator& other);
         // is it needed at all? wasnt in range task
         
         bool operator==(const Tree_Iterator& other) const {
-            return node->getKey == other.node->getKey;
+            return node->getKey() == other.node->getKey();
         }
         bool operator!=(const Tree_Iterator& other) const {
-            return node->getKey != other.node->getKey;
+            return node->getKey() != other.node->getKey();
         }
 
         Value& operator*() const {
@@ -100,15 +120,33 @@ public:
 
         // redo as written
         Tree_Iterator& operator++() {// btree_next
-            //index++;
+            if (node == find_right(root))
+                node = stop();
+            Node* node2 = node;
+            if (node2->getRight() != nullptr)
+                node = find_left(node2->getRight());
+            while (node2->getParent()->getLeft() != node2)
+                node2 = node2->getParent();
+            node = node2->getParent();
+            
             return *this;
         }
         Tree_Iterator operator+(int& increase) { // for increase btree_next
-            //index += increase;
+            for (int i = 0; i != increase; i++) {
+                *this++;
+            }
             return *this;
         }
         Tree_Iterator& operator--() { // btree_prev
-            //index--;
+            if (node == find_left(root))
+                node = stop();
+            Node* node2 = *node;
+            if (node2->getLeft() != nullptr)
+                node = find_right(node2->getLeft());
+            while (node2->getParent()->getRight() != node2)
+                node2 = node2->getParent();
+            node = node2->getParent();
+
             return *this;
         }
         Tree_Iterator operator-(int& decrease) { // for decrease btree_prev
@@ -125,3 +163,16 @@ public:
         return Tree_Iterator(this);
     }
 };
+
+
+
+//
+//template<typename Key, typename Value, typename Cmp, typename OwnIterator> class Tree final {
+//public:
+//    Tree_Iterator begin() const { // btree_first
+//        return OwnIterator(this);
+//    }
+//    Tree_Iterator end() const { // btree_last->right
+//        return OwnIterator(this);
+//    }
+//};
