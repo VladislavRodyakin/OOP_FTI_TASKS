@@ -2,21 +2,21 @@
 #include <iterator> // iterator tags
 
 // making unbalanced binary tree
+// key everywhere
 
-// make depth first iterator as default, allow to use other through template argument
 // interface lookalike to map, in so implement [], returns (value) under (key) (it is a wrap around find(key), which returns iterator)
+template<typename Key, typename Value, typename Cmp> class Tree {
 
-// expand template to key, value, cmp (as functor), iterator
-template<typename Key, typename Value, typename Cmp> class Tree { 
-
-    class Node final{
+    class Node final {
         // weak pointer parent, unique children
         Node* right = nullptr;
         Node* left = nullptr;
         Node* parent = nullptr;
-        Key key;
+        const Key key;
         Value data;
     public:
+        Node() = delete;
+        Node(const Key& _key, Value _value) : key(_key), data(_value) {};
         void setData(Value& _data) { data = _data; }
         Value getData() { return data; }
         void setKey(Key& _key) { key = _key; }
@@ -28,44 +28,129 @@ template<typename Key, typename Value, typename Cmp> class Tree {
         void setParent(Node* node) { parent = node; }
         Node* getParent() { return parent; }
     };
-    
-    Cmp cmp; // get from template     typedef bool (*cmp_ptr)(Value a, Value b);
+
+    Cmp compare_func; // int (*cmp_ptr)(Value a, Value b);
     Node* root = nullptr; // shared
-    size_t size;
+    size_t size = 0;
 
-public:
-    Tree() {}; // = delete?
-    Tree(const Tree<Key, Value, Cmp>& other) : root(other.root), cmp(other.cmp) {}; // copy pointer w/ root and internal ptrs
-    // Tree(const Value& value, cmp_ptr compare): data(value) {};
-    ~Tree() { 
-        delete(root);
-        // delete(compare);
-    }
-
-    // redo
-    /*
-    void addElem(Value& value) {
-        if (root)
-            root = *Node(value);
-        else
-            root->addChild(value);
-    }
-
-    void removeElem(Value& value) {
-        if (root && root->getData() == value) {
-            Node::deleteNode(root);
+    Node* insert_node(Node* _root, const Key& key, Value value) {
+        if (_root == nullptr) {
+            _root = new Node(key, value);
+            root = _root;
+            return _root;
+        }
+        int compare_result = compare_func(_root->getKey(), key);
+        if (compare_result > 0) {
+            if (_root->getLeft() == nullptr) {
+                _root->setLeft(new Node(key, value));
+                _root->getLeft()->setParent(_root);
+                return _root->getLeft();
+            }
+            return insert_node(_root->getLeft(), key, value);
+        }
+        if (compare_result < 0) {
+            if (_root->getRight() == nullptr) {
+                _root->setRight(new Node(key, value));
+                _root->getRight()->setParent(_root);
+                return _root->getRight();
+            }
+            return insert_node(_root->getRight(), key, value);
+        }
+        else { //there is node w/ this key already
+            _root->setData(value);
+            return _root;
         }
     }
-    */
 
-    void addSubtree(Tree<Key, Value, Cmp>& subtree) {
-
+    Node* remove_single_node(Node* _root) {
+        Node* node = nullptr;
+        if (_root->getLeft() == _root->getRight()) //empty undertree 
+            node = nullptr;
+        else if (_root->getLeft() == nullptr)
+            node = _root->getRight();
+        else if (_root->getRight() == nullptr)
+            node = _root->getLeft();
+        else { // both undertrees
+            Node* node2 = _root->getRight();
+            node = _root->getRight();
+            while (node2->getLeft())
+                node2 = node2->getLeft();
+            node2->setLeft(_root->getLeft());
+            _root->getLeft()->setParent(node2);
+        }
+        if (node != nullptr)
+            node->setParent(_root->getRight());
+        delete _root;
+        size--;
+        return node;
     }
-    void removeSubtree(Tree<Key, Value, Cmp>& subtree) {
 
+    void erase(Node* _root) {
+        if (_root == nullptr) {
+            return;
+        }
+        Node* parent = _root->getRight();
+        if (parent == nullptr)
+            root = remove_single_node(_root);
+        else if (parent->getLeft() == _root)
+            parent->setLeft(remove_single_node(_root));
+        else
+            parent->setRight(remove_single_node(_root));
     }
+
+    Node* find_node(Node* start_node, const Key& key) {
+        if (start_node == nullptr)
+            return nullptr;
+        int compare_result = compare_func(key, start_node->getKey());
+        if (compare_result == 0)
+            return start_node;
+        if (compare_result < 0)
+            return find_node(start_node->getLeft(), key);
+        return find_node(start_node->getRight(), key);
+    }
+
+public:
+    Tree() = delete;
+    Tree(Cmp cmp) : compare_func(cmp) {};
+    Tree(const Tree<Key, Value, Cmp>& other) : root(other.root), compare_func(other.compare_func) {}; // copy pointer w/ root and internal ptrs
+    ~Tree() { 
+        delete(root);
+    }
+
+    void addNode(const Key& key, Value value) {
+        insert_node(root, key, value);
+    }
+
+    void removeNode(const Key& key) {
+        erase(find_node(root, key));
+    }
+
+    Value& getValue(const Key& key) { // through iterator?
+        Value r = find_node(root, key)->getData();
+        return r;
+        //return find_node(root, key)->getData();
+    }
+
+    Value& operator[](const Key& key) {
+        Value r = find_node(root, key)->getData();
+        return r;
+        //return find_node(root, key)->getData();
+    }
+
+    // delete
+    /*
+    void addSubtree(Tree<Key, Value, Cmp>& _subtree) { // bad implementation
+        Tree<Key, Value, Cmp> subtree = _subtree;
+        while (subtree.root != nullptr) {
+            (*this).addNode(subtree.root->getKey(), subtree.root->getData());
+            subtree.removeNode(subtree.root->getKey());
+        }
+    }
+    void removeSubtree(Tree<Key, Value, Cmp>& subtree) { // key implementation?
+    }*/
 
     class Tree_Iterator { 
+        Tree<Key, Value, Cmp>* tree;
         Node* node; // weak pointer
         Node* find_left(Node* root) {
             if (root == nullptr)
@@ -97,12 +182,10 @@ public:
         //Tree_Iterator();
         //Tree_Iterator(const Tree_Iterator& other);
         //~Tree_Iterator();
-        Tree_Iterator(Tree<Key, Value, Cmp>* tree) {
+        Tree_Iterator(Tree<Key, Value, Cmp>* _tree) { //* not & bc "this" in tree.begin
+            tree = _tree;
             node = find_left(tree->root);
         };
-
-        //Tree_Iterator& operator=(const Tree_Iterator& other);
-        // is it needed at all? wasnt in range task
         
         bool operator==(const Tree_Iterator& other) const {
             return node->getKey() == other.node->getKey();
@@ -111,16 +194,16 @@ public:
             return node->getKey() != other.node->getKey();
         }
 
-        Value& operator*() const {
-            return *node;
+        Value operator*() const {
+            return node->getData();
         }
         Value* operator->() const {
-            return node;
+            return *(node->getData());
         }
 
-        // redo as written
+
         Tree_Iterator& operator++() {// btree_next
-            if (node == find_right(root))
+            if (node == find_right(tree->root))
                 node = stop();
             Node* node2 = node;
             if (node2->getRight() != nullptr)
@@ -138,7 +221,7 @@ public:
             return *this;
         }
         Tree_Iterator& operator--() { // btree_prev
-            if (node == find_left(root))
+            if (node == find_left(tree->root))
                 node = stop();
             Node* node2 = *node;
             if (node2->getLeft() != nullptr)
@@ -150,22 +233,25 @@ public:
             return *this;
         }
         Tree_Iterator operator-(int& decrease) { // for decrease btree_prev
-            //index -= decrease; 
+            for (int i = 0; i != decrease; i++) {
+                *this--;
+            }
             return *this;
         }
     };
 
     // redo as written
-    Tree_Iterator begin() const { // btree_first
+    Tree_Iterator begin() { // btree_first
         return Tree_Iterator(this);
     }
-    Tree_Iterator end() const { // btree_last->right
+    Tree_Iterator end()  { // btree_last->right
         return Tree_Iterator(this);
     }
 };
 
 
 
+// make depth first iterator as default, allow to use other through template argument
 //
 //template<typename Key, typename Value, typename Cmp, typename OwnIterator> class Tree final {
 //public:
