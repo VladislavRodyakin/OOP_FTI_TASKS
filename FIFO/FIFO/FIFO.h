@@ -26,8 +26,6 @@ public:
 		}
 	}
 
-	// maybe use another vector of bools to define whether block is taken for writing or not
-
 	// метод, вызываемый потоком-писателем, для получения указателя на очередной свободный блок данных
 	void* getFree() {
 		const std::lock_guard<std::mutex> lock(getFree_mutex);
@@ -46,7 +44,6 @@ public:
 		const std::lock_guard<std::mutex> lock(addReady_mutex);
 		for (int i = 0; i < m_max_queue_size; i++) {
 			if (data_container[i] == data) {
-				ready_for_writing_state[i] = true; // cant move to the getFree
 				ready_for_read_blocks.push(data);
 				break;
 			}
