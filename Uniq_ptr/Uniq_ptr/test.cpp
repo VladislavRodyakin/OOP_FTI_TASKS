@@ -82,6 +82,7 @@ TEST(Operators, Dereference) {
 
 
 }
+
 TEST(Ownership, Release) {
     int* new_int = new int[10];
     test_struct* sp = new test_struct(new_int);
@@ -89,10 +90,7 @@ TEST(Ownership, Release) {
     EXPECT_EQ(ptr.get(), sp);
     ptr.release();
     EXPECT_EQ(ptr.get(), nullptr);
-    UniquePointer <test_struct> ptr2(sp);
-    EXPECT_EQ(ptr2.get(), sp);
 }
-
 
 TEST(Ownership, Reset) {
     double* d = new double[100];

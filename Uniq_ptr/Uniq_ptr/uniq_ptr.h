@@ -3,17 +3,23 @@
 #include<utility>
 
 template<class Type, class TDeleter = std::default_delete<Type>> class UniquePointer final{
-    Type* m_ptr;
+    Type* m_ptr = nullptr;
     using t_UniquePTR = UniquePointer<Type, TDeleter>;
 public:
-    // просто UniquePoiner() = default
+    // просто UniquePoiner() = default;
+    // UniquePoiner() = default; results in errors like "UniquePointer<Type, std::default_delete<Type>> has no default constructor
+    // maybe it would fix itself with VS restart
     UniquePointer() : UniquePointer{ nullptr } {};
     explicit UniquePointer(Type* pObject) {
         if (pObject) {
             m_ptr = pObject;
         }
     }
-    UniquePointer(t_UniquePTR&& uniquePTR) noexcept : m_ptr{ uniquePTR.release() } {};
+    UniquePointer(t_UniquePTR&& uniquePTR) noexcept {
+        m_ptr = uniquePTR.m_ptr;
+        //uniquePTR.m_ptr = nullptr; // but we have to delete here, yes?
+        uniquePTR.release(); // this is temporarily fixed, but depends on release()
+    }
     ~UniquePointer() {
         if (m_ptr) {
             delete m_ptr;
@@ -24,6 +30,7 @@ public:
     UniquePointer& operator=(t_UniquePTR&& uniquePTR) noexcept {
         if (this != &uniquePTR) {
             std::swap(m_ptr, uniquePTR.m_ptr);
+            uniquePTR.release();
         }
         return *this;
     }
@@ -44,12 +51,17 @@ public:
     }
 
     // Modifiers.
-    // Надо еще удалить old, иначе утечка памяти
-    // Why? This just releases ownerhip.
-    // It literally says that all responisbility for deleting and such is on user now
-    Type* release() {
-        return std::exchange(m_ptr, nullptr);
-    }
+    void release() {
+        Type* old = std::exchange(m_ptr, nullptr);
+        if (old != nullptr) {
+            // delete old;
+            // old = nullptr;
+        } // best guess is that it calls "delete old" by itself at the end of the method, so any meddling is causing runtime SEH errors
+
+        // delete std::exchange(m_ptr, nullptr); // memory access runtime errors
+        // but problem is elsewhere
+
+    } // it calls delete here, for some reason (see higher)
 
     void reset(Type* pObject = nullptr, TDeleter deleter = {}) {
         if (m_ptr) {
