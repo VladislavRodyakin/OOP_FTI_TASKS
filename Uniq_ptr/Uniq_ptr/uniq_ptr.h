@@ -8,8 +8,11 @@ template<class Type, class TDeleter = std::default_delete<Type>> class UniquePoi
 public:
     // просто UniquePoiner() = default
     UniquePointer() : UniquePointer{ nullptr } {};
-    //надо проверить на null pObject
-    explicit UniquePointer(Type* pObject) : m_ptr{ pObject } {};
+    explicit UniquePointer(Type* pObject) {
+        if (pObject) {
+            m_ptr = pObject;
+        }
+    }
     UniquePointer(t_UniquePTR&& uniquePTR) noexcept : m_ptr{ uniquePTR.release() } {};
     ~UniquePointer() {
         if (m_ptr) {
@@ -18,10 +21,9 @@ public:
     }
 
     // Assignment.
-    //кажется проще будет сделать std::swap и указателей
     UniquePointer& operator=(t_UniquePTR&& uniquePTR) noexcept {
         if (this != &uniquePTR) {
-            reset(uniquePTR.release());
+            std::swap(m_ptr, uniquePTR.m_ptr);
         }
         return *this;
     }
@@ -43,23 +45,17 @@ public:
 
     // Modifiers.
     // Надо еще удалить old, иначе утечка памяти
+    // Why? This just releases ownerhip.
+    // It literally says that all responisbility for deleting and such is on user now
     Type* release() {
-        Type* old = m_ptr;
-        m_ptr = nullptr;
-        return old;
-        // return std::exchange(m_ptr, nullptr);
+        return std::exchange(m_ptr, nullptr);
     }
 
-    // Без дополнительного old вообще можно обойтись
-    // if (m_ptr) {delete m_ptr};
-    //  m_ptr = pObject;
     void reset(Type* pObject = nullptr, TDeleter deleter = {}) {
-        Type* old = m_ptr;
-        m_ptr = pObject;
-        // Type* old = std::exchange(m_ptr, pObject);
-        if (old) {
-            delete old;
+        if (m_ptr) {
+            delete m_ptr;
         }
+        m_ptr = pObject;
     }
     void swap(t_UniquePTR& uniquePTR) { std::swap(this->m_ptr, uniquePTR.m_ptr); }// Exchange the pointer with another object.
 

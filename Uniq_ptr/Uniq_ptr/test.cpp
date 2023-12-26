@@ -82,7 +82,7 @@ TEST(Operators, Dereference) {
 
 
 }
-TEST(Release, NoErrors) {
+TEST(Ownership, Release) {
     int* new_int = new int[10];
     test_struct* sp = new test_struct(new_int);
     UniquePointer <test_struct> ptr(sp);
@@ -94,14 +94,14 @@ TEST(Release, NoErrors) {
 }
 
 
-TEST(Reset, NoErrors) {
+TEST(Ownership, Reset) {
     double* d = new double[100];
     UniquePointer <double> dptr;
     dptr.reset(d);
     EXPECT_EQ(dptr.get(), d);
 }
 
-TEST(Swap, NoErrors) {
+TEST(Ownership, Swap) {
     test_struct* sp = new test_struct(new int[100]);
     UniquePointer <test_struct> ptr1(sp);
     UniquePointer <test_struct> ptr2;
@@ -110,7 +110,7 @@ TEST(Swap, NoErrors) {
     EXPECT_EQ(ptr1.get(), nullptr);
 }
 
-TEST(MakeShared, NoErrors) {
+TEST(Ownership, MakeUnique) {
     int* new_int = new int[10];
     auto ptr = make_unique<test_struct>(new_int);
     EXPECT_EQ(ptr.get()->_val, new_int);
