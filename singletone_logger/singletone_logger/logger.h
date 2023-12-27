@@ -16,7 +16,6 @@ class logstream final {
 
     static void writeInFile() {
         if (m_outFile.is_open()) {
-            throw std::exception("file opened");
             m_outFile << m_buffer.str();
             m_outFile.flush();
         }
