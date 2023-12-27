@@ -16,9 +16,7 @@ public:
         }
     }
     UniquePointer(t_UniquePTR&& uniquePTR) noexcept {
-        m_ptr = uniquePTR.m_ptr;
-        //uniquePTR.m_ptr = nullptr; // but we have to delete here, yes?
-        uniquePTR.release(); // this is temporarily fixed, but depends on release()
+        std::swap(m_ptr,uniquePTR.m_ptr); // yes, we dont have to delete
     }
     ~UniquePointer() {
         if (m_ptr) {
@@ -52,11 +50,14 @@ public:
 
     // Modifiers.
     void release() {
-        Type* old = std::exchange(m_ptr, nullptr);
-        if (old != nullptr) {
+        if (m_ptr)
+            delete m_ptr;
+        m_ptr = nullptr;
+        //Type* old = std::exchange(m_ptr, nullptr);
+        //if (old != nullptr) {
             // delete old;
             // old = nullptr;
-        } // best guess is that it calls "delete old" by itself at the end of the method, so any meddling is causing runtime SEH errors
+        ///} // best guess is that it calls "delete old" by itself at the end of the method, so any meddling is causing runtime SEH errors
 
         // delete std::exchange(m_ptr, nullptr); // memory access runtime errors
         // but problem is elsewhere
