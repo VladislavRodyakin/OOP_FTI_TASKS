@@ -9,7 +9,8 @@ class ImageFIFO final {
 	std::vector<unsigned int*> data_container;
 	std::vector<bool> ready_for_writing_state;
 	std::queue<void*> ready_for_read_blocks;
-	std::mutex mut;
+	std::mutex mut; //assembler problems, single memory scope; 
+	// if we need to block both functions at once, then we need one function
 	/*
 	std::mutex getFree_mutex;
 	std::mutex addReady_mutex;
