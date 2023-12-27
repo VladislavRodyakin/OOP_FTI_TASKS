@@ -46,11 +46,12 @@ public:
     }
     
 
-    void set_log_file(const std::string& name) {
+    void set_log_file(const std::string& name, std::ios::openmode mode = std::ios::app) {
         if (m_outFile.is_open()) {
             writeInFile();
             clearBuf();
         }
+        m_outFile = std::ofstream(name, mode);
     }
 
     template <typename T> inline logstream& operator << (const T& rhs) {
@@ -66,7 +67,6 @@ public:
     }
 private:
     logstream() = default;
-    //logstream(const std::string& prefix = std::string()) : m_prefix{ prefix } {};
     logstream(const logstream&) = delete;
     void operator=(const logstream&) = delete;
 };
